@@ -1,0 +1,58 @@
+name: Self-Service Team Onboarding
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_handle:
+        description: 'Your GitHub Username'
+        required: true
+        type: string
+
+jobs:
+  onboard-and-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # Uses your PAT so the workflow can commit back to the repository
+          token: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
+
+      - name: Validate GitHub User
+        env:
+          GH_TOKEN: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
+        run: |
+          if ! gh api users/${{ inputs.github_handle }} --silent; then
+            echo "Error: User ${{ inputs.github_handle }} does not exist on GitHub."
+            exit 1
+          fi
+          echo "User validated successfully."
+
+      - name: Update Membership JSON
+        run: |
+          # Appends the user to the array and removes any potential duplicates
+          jq '.git_workshop += ["${{ inputs.github_handle }}"] | .git_workshop |= unique' members.json > temp.json
+          mv temp.json members.json
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add members.json
+          # If the user is already in the file, there is nothing to commit
+          git commit -m "Add ${{ inputs.github_handle }} to git_workshop team" || echo "No changes to commit"
+          git push
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        env:
+          TF_VAR_github_token: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
+          TF_VAR_github_org: "YOUR_ORG_NAME"
+        run: terraform apply -auto-approve
