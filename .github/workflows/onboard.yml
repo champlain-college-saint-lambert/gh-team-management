@@ -8,19 +8,18 @@ on:
         required: true
         type: string
 
+# Grant the default GITHUB_TOKEN write access to the repository
+permissions:
+  contents: write
+
 jobs:
-  onboard-and-apply:
+  validate-user:
+    name: 1. Validate Username
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          # Uses your PAT so the workflow can commit back to the repository
-          token: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
-
-      - name: Validate GitHub User
+      - name: Check GitHub API
         env:
-          GH_TOKEN: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if ! gh api users/${{ inputs.github_handle }} --silent; then
             echo "Error: User ${{ inputs.github_handle }} does not exist on GitHub."
@@ -28,9 +27,17 @@ jobs:
           fi
           echo "User validated successfully."
 
+  update-repository:
+    name: 2. Update Membership File
+    needs: validate-user
+    runs-on: ubuntu-latest
+    steps:
+      # Default checkout uses GITHUB_TOKEN with write access
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Update Membership JSON
         run: |
-          # Appends the user to the array and removes any potential duplicates
           jq '.git_workshop += ["${{ inputs.github_handle }}"] | .git_workshop |= unique' members.json > temp.json
           mv temp.json members.json
 
@@ -39,9 +46,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add members.json
-          # If the user is already in the file, there is nothing to commit
           git commit -m "Add ${{ inputs.github_handle }} to git_workshop team" || echo "No changes to commit"
           git push
+
+  terraform-apply:
+    name: 3. Apply Terraform Cloud
+    needs: update-repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -54,5 +68,5 @@ jobs:
       - name: Terraform Apply
         env:
           TF_VAR_github_token: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
-          TF_VAR_github_org: "YOUR_ORG_NAME"
+          TF_VAR_github_org: "champlain-college-saint-lambert"
         run: terraform apply -auto-approve
