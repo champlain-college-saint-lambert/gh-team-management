@@ -7,12 +7,12 @@ terraform {
   }
   required_version = ">= 1.0.5"
 
-  cloud {
+  backend "remote" {
     organization = "champlain-college-saint-lambert"
     workspaces {
-        name = "gh_actions"
-        }
+      name = "gh_actions"
     }
+  }
 
 }
 
@@ -28,5 +28,5 @@ variable "github_token" {
 
 variable "github_org" {
   type    = string
-  default = "@champlain-college-saint-lambert" 
+  default = "champlain-college-saint-lambert" 
 }
