@@ -27,36 +27,19 @@ jobs:
           fi
           echo "User validated successfully."
 
-  update-repository:
-    name: 2. Update Membership File
+  apply-and-commit:
+    name: 2. Apply and Commit
     needs: validate-user
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Update Membership JSON
+      - name: Update Membership JSON Locally
         run: |
-          # Point jq to the terraform folder
+          # Updates the file on the runner, but does not commit it yet
           jq '.git_workshop += ["${{ inputs.github_handle }}"] | .git_workshop |= unique' terraform/members.json > temp.json
           mv temp.json terraform/members.json
-
-      - name: Commit and Push Changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Add the specific file path
-          git add terraform/members.json
-          git commit -m "Add ${{ inputs.github_handle }} to git_workshop team" || echo "No changes to commit"
-          git push
-
-  terraform-apply:
-    name: 3. Apply Terraform Cloud
-    needs: update-repository
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -72,4 +55,15 @@ jobs:
         env:
           TF_VAR_github_token: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
           TF_VAR_github_org: "champlain-college-saint-lambert"
+        # Terraform will read the uncommitted, updated members.json
+        # If this step fails (e.g., a 404 error), the workflow stops here.
         run: terraform apply -auto-approve
+
+      - name: Commit and Push Changes
+        # This step only executes if the Terraform Apply was successful
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add terraform/members.json
+          git commit -m "Add ${{ inputs.github_handle }} to git_workshop team" || echo "No changes to commit"
+          git push
