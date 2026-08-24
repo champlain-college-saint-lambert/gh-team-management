@@ -20,11 +20,18 @@ jobs:
         id: extract-user
         env:
           GH_TOKEN: ${{ github.token }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          GITHUB_HANDLE="$(echo "${{ github.event.issue.title }}" | sed -E 's/^Onboard:[[:space:]]*//; s/[[:space:]]+$//')"
+          GITHUB_HANDLE="$(printf '%s\n' "$ISSUE_TITLE" | sed -E 's/^Onboard:[[:space:]]*//; s/[[:space:]]+$//')"
 
           if [ -z "$GITHUB_HANDLE" ]; then
             gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "❌ The issue title must include a GitHub username after \`Onboard:\`."
+            gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --reason "not planned"
+            exit 1
+          fi
+
+          if ! [[ "$GITHUB_HANDLE" =~ ^[A-Za-z0-9-]{1,39}$ ]]; then
+            gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "❌ Invalid GitHub username format in issue title."
             gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --reason "not planned"
             exit 1
           fi
@@ -34,9 +41,10 @@ jobs:
       - name: Check GitHub API
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_HANDLE: ${{ steps.extract-user.outputs.github_handle }}
         run: |
-          if ! gh api users/${{ steps.extract-user.outputs.github_handle }} --silent; then
-            gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "❌ GitHub user \`${{ steps.extract-user.outputs.github_handle }}\` does not exist."
+          if ! gh api "users/$GITHUB_HANDLE" --silent; then
+            gh issue comment "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --body "❌ GitHub user \`$GITHUB_HANDLE\` does not exist."
             gh issue close "${{ github.event.issue.number }}" --repo "${{ github.repository }}" --reason "not planned"
             exit 1
           fi
