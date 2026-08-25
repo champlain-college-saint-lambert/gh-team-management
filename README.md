@@ -1,32 +1,38 @@
-# GitHub Team Onboarding (IssueOps)
+# GitHub Team Management
 
-This repository manages membership for the `champlain-college-saint-lambert` organization’s `git_workshop` team using Terraform.  
-Onboarding is automated through an IssueOps workflow that reads and updates `terraform/members.json` as the source of truth.
+This repository uses an automated IssueOps pipeline to manage team memberships for the `git_workshop` team via Terraform. 
 
-## How to Request Onboarding
+Instead of manually requesting access from an administrator, you can use our self-service portal to automatically provision your access and update the repository state.
 
-1. Go to the repository’s **Issues** tab.
-2. Click **New issue**.
-3. Set the issue title using this exact format: `Onboard: <YourGitHubUsername>`.
-   - Example: `Onboard: DylanBrass`
-4. Add any optional context in the issue body (not required).
-5. Submit the issue.
+## How to Onboard Yourself
 
-## What Happens After You Submit
+To get added to the `git_workshop` team, simply use our automated Issue Template!
 
-1. **Automated validation** runs when your issue is opened.
-2. The workflow checks that:
-   - the title starts with `Onboard:`
-   - the GitHub username exists
-   - the username is not already listed in `terraform/members.json`
-3. If valid, the workflow:
-   - appends your username to `terraform/members.json`
-   - runs Terraform to apply the membership change
-   - commits the updated membership file back to this repository
-4. The workflow comments on your issue with the result and closes it automatically.
-5. If everything succeeds, GitHub sends the team invitation email for you to accept.
+**Important:** You *must* be logged into your GitHub account to request access. If you are browsing anonymously, the "New issue" button will be disabled.
 
-## Administrator Note
+1. Go to the **[Issues](../../issues)** tab.
+2. Click the green **New issue** button.
+3. Next to "Self-Service Onboarding", click **Get started**.
+4. In the title of the issue, replace `YOUR_GITHUB_USERNAME` with your actual GitHub handle. (Make sure you keep the `Onboard: ` part!).
+5. Click **Submit new issue**.
 
-Manual member removal is not automated in this flow.  
-To remove a user, update `terraform/members.json` directly and commit the change.
+### What happens next?
+
+Once you submit the issue, an automated GitHub Actions pipeline will:
+1. Verify that your GitHub handle exists.
+2. Ensure you are not already in the team.
+3. Automatically update the backend infrastructure using Terraform.
+4. Commit your username to the `terraform/members.json` source of truth.
+5. Comment on your issue with a success message and close it.
+
+Check your email! You will receive an invitation from GitHub to join the organization and the team.
+
+---
+
+## For Administrators: Manual Removal
+
+To remove a user from the team:
+1. Edit `terraform/members.json`.
+2. Remove the user's handle from the `git_workshop` array.
+3. Commit directly to `main` (or via a Pull Request). 
+4. The pipeline will automatically run and revoke the user's access.
