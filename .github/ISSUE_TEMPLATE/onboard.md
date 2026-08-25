@@ -6,7 +6,7 @@ labels: ''
 assignees: ''
 ---
 
-Welcome to the Git Workshop! 🎉
+Welcome to the Git Workshop! 
 
 To automatically gain access to the organization and repository, please follow these steps carefully:
 
