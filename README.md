@@ -12,7 +12,7 @@ To get added to the `git_workshop` team, simply use our automated Issue Template
 
 1. Go to the **[Issues](../../issues)** tab.
 2. Click the green **New issue** button.
-3. Next to "Self-Service Onboarding", click **Get started**.
+3. Select the "Self-Service Onboarding" template.
 4. In the title of the issue, replace `YOUR_GITHUB_USERNAME` with your actual GitHub handle. (Make sure you keep the `Onboard: ` part!).
 5. Click **Submit new issue**.
 
