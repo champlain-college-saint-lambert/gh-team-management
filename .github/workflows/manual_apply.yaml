@@ -1,0 +1,31 @@
+name: Admin Manual Sync
+
+on:
+  workflow_dispatch: # This enables the manual "Run workflow" button
+
+jobs:
+  terraform-apply:
+    name: Manual Terraform Apply
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.15.9"
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        env:
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+          TF_VAR_github_token: ${{ secrets.ORG_PAT_TEAM_TOKEN }}
+          TF_VAR_github_org: "champlain-college-saint-lambert"
+        run: terraform apply -auto-approve
